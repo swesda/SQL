@@ -1,79 +1,36 @@
 package ru.netology.dataHelper;
 
 import com.github.javafaker.Faker;
-import lombok.SneakyThrows;
-import lombok.Value;
-import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.handlers.ScalarHandler;
-import ru.netology.page.AuthPage;
+import ru.netology.page.UserData;
 
-import java.sql.DriverManager;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class DataHelper {
 
-    private DataHelper() {
+    private static Faker faker = new Faker();
+
+    public static UserData validUser(){
+        return new UserData("vasya","qwerty123");
     }
 
-    @Value
-    public static class AuthInfo {
-        private String login;
-        private String password;
+    public static String randomPass(){
+        String ramndomPassword = faker.internet().password();
+        return ramndomPassword;
     }
 
-    public static AuthInfo getAuthInfo(AuthPage info) {
-        return new AuthInfo("vasya", "qwerty123");
+    public static String validVerifyCode(String login){
+        String verifyCode = SQLHelper.getValidVerifyCode(login);
+        return verifyCode;
     }
 
-    @Value
-    public static class VerificationCode {
-        private String code;
+    public static String invalidVerifyCode(){
+        int verifyCode = faker.number().numberBetween(100000,999999);
+        return String.valueOf(verifyCode);
     }
 
-    @SneakyThrows
-    public static String getVerificationCode() {
-        var login = "vasya";
-        var verificationCode = "SELECT ac.code from auth_codes ac join users u on u.id = ac.user_id " +
-                "where u.login = ? ORDER by created DESC LIMIT 1;";
-        var runner = new QueryRunner();
-        try (
-                var conn = DriverManager.getConnection(
-                        "jdbc:mysql://localhost:3306/database", "user", "password");
-        ) {
-            return runner.query(conn, verificationCode, login, new ScalarHandler<>());
-        }
-    }
-
-    @SneakyThrows
-    public static String getStatusUser() {
-        var login = "vasya";
-        var statusUser = "SELECT u.status from users u where u.login = ?;";
-        var runner = new QueryRunner();
-        try (
-                var conn = DriverManager.getConnection(
-                        "jdbc:mysql://localhost:3306/database", "user", "password");
-        ) {
-            return runner.query(conn, statusUser, login, new ScalarHandler<>());
-        }
-    }
-
-    @SneakyThrows
-    public static void cleanDataBase() {
-        var runner = new QueryRunner();
-        var cleanAuthCode = "DELETE FROM auth_codes;";
-        var cleanCards = "DELETE FROM cards;";
-        var cleanUsers = "DELETE FROM users;";
-        try (
-                var conn = DriverManager.getConnection(
-                        "jdbc:mysql://localhost:3306/database", "user", "password");
-        ) {
-            runner.update(conn, cleanAuthCode);
-            runner.update(conn, cleanCards);
-            runner.update(conn, cleanUsers);
-        }
-    }
-
-    public static String wrongVerificationCode() {
-        String wrongVerificationCode = new Faker().internet().password();
-        return wrongVerificationCode;
+    public static void assertStatus(String login){
+        String expected = "blocked";
+        String actual = SQLHelper.userStatus(login);
+        assertEquals(expected,actual);
     }
 }
